@@ -8,8 +8,8 @@ const Home = () => {
       <div className="container landing-container">
       <div className="row">
         <div className="col-md-12 text-center mt-5">
-          <h1>Welcome to Our Landing Page</h1>
-          <p>This is a Bootstrap-based landing page with centered text.</p>
+          <h1>Welcome to SahaYaatra</h1>
+          <p>A innovative way to Travel</p>
           <a href="#" className="btn btn-primary">Get Started</a>
         </div>
       </div>
