@@ -6,6 +6,7 @@ import {Route, Routes } from "react-router-dom"
 
 import Home from "./pages/Home";
 import DriverDashboard from "./pages/DriverDash";
+import RiderDashboard from "./pages/RiderDash";
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
       <Route path="/" element={<Home/>} />
       <Route path="/signup" element={<SignUp/>} />
       <Route path="/signin" element={<SignIn/>} />
+      <Route path="/rider" element={<RiderDashboard/>}/>
     </Routes>
   );
 }
