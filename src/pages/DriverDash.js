@@ -1,24 +1,32 @@
 import React, { useState, useEffect } from "react";
-import { getDatabase, ref, set } from "firebase/database";
+import {
+  getDatabase,
+  ref,
+  set,
+  onValue,
+  child,
+  orderByChild,
+} from "firebase/database";
 import { firebaseApp } from "../firebaseconfig";
 
 function DriverDashboard() {
   const [rideRequests, setRideRequests] = useState([]);
   const [isAvailable, setIsAvailable] = useState(true);
-  const [destination, setDestination] = useState(""); // State for destination
-
+  const [dest, setDest] = useState("");
+  const [source, setSource] = useState("");
   const database = getDatabase(firebaseApp);
 
   // Function to write user data to the Firebase Realtime Database
   const writeUserData = () => {
     try {
-      const userId = localStorage.getItem('username');
-      const userEmail = localStorage.getItem('userEmail');
+      const userId = localStorage.getItem("username");
+      const userEmail = localStorage.getItem("userEmail");
 
-      if (userId && userEmail && destination) {
+      if (userId && userEmail && dest && source) {
         const dataToInsert = {
           email: userEmail,
-          destination: destination,
+          dest: dest,
+          source: source,
         };
 
         const userRef = ref(database, `drivers/${userId}`);
@@ -41,24 +49,76 @@ function DriverDashboard() {
     setIsAvailable(!isAvailable);
   };
 
-  useEffect(() => {
-    // Replace this with actual API call
-    const fetchRideRequests = async () => {
-      try {
-        // Fetch ride requests data
-        const response = await fetch("api/ride-requests");
-        const data = await response.json();
-        setRideRequests(data);
-      } catch (error) {
-        console.error("Error fetching ride requests: ", error);
-      }
-    };
+  // Function to fetch pending ride requests for the current driver
+  const fetchPendingRideRequests = () => {
+    try {
+      const userEmail = localStorage.getItem("userEmail");
+      console.log("User Email:", userEmail);
+  
+      if (userEmail) {
+        const rideRequestsRef = ref(database, "ride-requests");
+  
+        // Query ride requests where the driverMail matches the user's email and status is "pending"
+        const query = orderByChild(rideRequestsRef, "status").equalTo("pending");
 
-    fetchRideRequests();
+        console.log("Query:", query.toString());
+  
+        onValue(query, (snapshot) => {
+          const rideRequestsData = snapshot.val();
+          console.log("Ride Requests Data:", rideRequestsData);
+  
+          if (rideRequestsData) {
+            const pendingRequests = Object.values(rideRequestsData);
+            console.log("All Pending Requests:", pendingRequests);
+  
+            // Filter the pending requests to only include those assigned to the current driver
+            const driverPendingRequests = pendingRequests.filter((request) => {
+              return request.driverMail === userEmail && request.status === "pending";
+            });
+            console.log("Driver Pending Requests:", driverPendingRequests);
+  
+            setRideRequests(driverPendingRequests);
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching pending ride requests: ", error);
+    }
+  };
+  
+
+  // Function to accept a ride request
+  const acceptRideRequest = (request) => {
+    try {
+      const rideRequestId = request.id; // Replace with the actual ID of the ride request
+      const rideRequestsRef = ref(database, "ride-requests");
+      const userEmail = localStorage.getItem("userEmail");
+
+      // Update the ride request with the driver's email and status "accepted"
+      set(child(rideRequestsRef, rideRequestId), {
+        ...request, // Keep the existing data
+        driverMail: userEmail,
+        status: "accepted",
+      })
+        .then(() => {
+          console.log("Ride request accepted successfully");
+          // Fetch updated list of pending ride requests
+          fetchPendingRideRequests();
+        })
+        .catch((error) => {
+          console.error("Error accepting ride request:", error);
+        });
+    } catch (error) {
+      console.error("Error accepting ride request: ", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchPendingRideRequests();
   }, []);
 
   return (
-    <div className="bg-[#191717] min-h-screen p-8 ">
+    <div className="bg-[#191717] min-h-screen p-8">
       <div className="max-w-xl mx-auto bg-[#F1EFEF] p-4 rounded-lg shadow-md">
         <h1 className="text-3xl font-semibold mb-4">Driver Dashboard</h1>
         <div className="mb-4">
@@ -70,18 +130,26 @@ function DriverDashboard() {
           >
             {isAvailable ? "Go Online" : "Go Offline"}
           </button>
-          {/* Input field for destination */}
           {!isAvailable && (
-            <input
-              type="text"
-              placeholder="Enter destination"
-              className="p-2 mt-2 rounded-lg w-full"
-              value={destination}
-              onChange={(e) => setDestination(e.target.value)}
-            />
+            <>
+              <input
+                type="text"
+                placeholder="Enter source"
+                className="p-2 mt-2 rounded-lg w-full"
+                value={source}
+                onChange={(e) => setSource(e.target.value)}
+              />
+              <input
+                type="text"
+                placeholder="Enter dest"
+                className="p-2 mt-2 rounded-lg w-full"
+                value={dest}
+                onChange={(e) => setDest(e.target.value)}
+              />
+            </>
           )}
           <button className="btn btn-primary" onClick={writeUserData}>
-            Save Destination
+            Save Route
           </button>
         </div>
         <h2 className="text-xl font-semibold mb-2">Pending Ride Requests</h2>
@@ -89,19 +157,15 @@ function DriverDashboard() {
           {rideRequests.map((request) => (
             <li key={request.id} className="mb-2">
               <div className="bg-gray-200 p-2 rounded-lg">
-                <strong>Passenger: {request.passengerName}</strong>
+                <strong>Rider: {request.riderUserId}</strong>
                 <br />
-                From: {request.pickupLocation} - To: {request.destination}
+                Pickup Location: {request.pickupLocation}
                 <br />
-                Distance: {request.distance} miles
-                <br />
-                Fare: ${request.fare}
+                Dropoff Location: {request.dropoffLocation}
                 <br />
                 <button
                   className="py-1 px-2 bg-blue-500 text-white rounded-lg mt-2"
-                  onClick={() => {
-                    /* Add code to accept the ride request */
-                  }}
+                  onClick={() => acceptRideRequest(request)}
                 >
                   Accept
                 </button>
