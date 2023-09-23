@@ -27,7 +27,7 @@ const Home = () => {
             <p>An innovative way to Travel</p>
             {username ? (
               // If a username is present, show "Go to Dashboard" button
-              <Link to="/dashboard" className="btn btn-outline-primary">
+              <Link to="/Rider" className="btn btn-outline-primary">
                 Go to Dashboard
               </Link>
             ) : (
