@@ -40,6 +40,9 @@ const SignIn = () => {
       <div className="row h-100 justify-content-center align-items-center bg-dark">
         <div className="col-md-4">
           <div className="card bg-light rounded p-4">
+          <Link to="/" >
+                Back
+            </Link>
             <h1 className="text-center font-weight-bold mb-4">Login</h1>
             <input
               type="email"
